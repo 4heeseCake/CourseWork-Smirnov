@@ -1,0 +1,103 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #f3f5f7;
+  color: #20242a;
+}
+
+button,
+input,
+textarea {
+  font: inherit;
+}
+
+.page {
+  width: min(1000px, 94%);
+  margin: 24px auto;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  align-items: center;
+  margin-bottom: 18px;
+}
+
+.header h1 {
+  margin-bottom: 4px;
+}
+
+nav {
+  display: flex;
+  gap: 10px;
+}
+
+nav a {
+  padding: 8px 12px;
+  border: 1px solid #999;
+  border-radius: 6px;
+  text-decoration: none;
+  color: inherit;
+  background: white;
+}
+
+.card {
+  background: white;
+  border: 1px solid #d6d9dd;
+  border-radius: 8px;
+  padding: 18px;
+  margin-bottom: 16px;
+}
+
+.card h2 {
+  margin-top: 0;
+}
+
+form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 10px 0;
+}
+
+input,
+textarea {
+  flex: 1 1 260px;
+  padding: 8px;
+  border: 1px solid #aaa;
+  border-radius: 4px;
+}
+
+textarea {
+  min-height: 70px;
+}
+
+button {
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+.output {
+  padding: 10px;
+  margin-top: 10px;
+  border: 1px dashed #aaa;
+  min-height: 42px;
+}
+
+.comments {
+  display: grid;
+  gap: 8px;
+}
+
+.message {
+  font-weight: bold;
+}
+
+.note {
+  background: #fffce8;
+}
