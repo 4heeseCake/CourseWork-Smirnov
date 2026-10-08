@@ -36,8 +36,11 @@ describe('XSS demo endpoints', () => {
 
   it('sanitizes stored comments in protected mode', async () => {
     const app = createApp();
-    const response = await request(app)
+    const agent = request.agent(app);
+    const token = await agent.get('/api/csrf-token?mode=protected');
+    const response = await agent
       .post('/api/comments?mode=protected')
+      .set('X-CSRF-Token', token.body.csrfToken)
       .send({ text: XSS_PAYLOAD });
 
     expect(response.status).toBe(201);

@@ -1,0 +1,11 @@
+{
+  "name": "demo-browser-check",
+  "private": true,
+  "scripts": {
+    "test": "node browser.cjs",
+    "browser:install": "playwright install chromium"
+  },
+  "devDependencies": {
+    "playwright": "^1.58.0"
+  }
+}

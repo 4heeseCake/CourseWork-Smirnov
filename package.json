@@ -3,13 +3,16 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "install:all": "npm install --prefix backend && npm install --prefix frontend",
+    "install:all": "npm ci --prefix backend && npm ci --prefix frontend",
     "dev:backend": "npm run dev --prefix backend",
     "dev:frontend": "npm run dev --prefix frontend",
     "lint": "npm run lint --prefix backend && npm run lint --prefix frontend",
     "format:check": "npm run format:check --prefix backend && npm run format:check --prefix frontend",
-    "test": "npm test --prefix backend && npm test --prefix frontend",
+    "test": "npm test --prefix backend && npm test --prefix frontend && node --check attacker/server.js && node --check frontend/server/server.cjs",
     "build": "npm run build --prefix backend && npm run build --prefix frontend",
-    "ci": "npm run lint && npm run format:check && npm test && npm run build"
+    "ci": "npm run lint && npm run format:check && npm test && npm run build",
+    "start:frontend": "node frontend/server/server.cjs",
+    "start:attacker": "node attacker/server.js",
+    "smoke": "node scripts/smoke.cjs"
   }
 }

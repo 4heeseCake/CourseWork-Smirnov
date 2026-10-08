@@ -8,7 +8,7 @@
     "build": "vite build",
     "lint": "eslint src tests --ext .js,.jsx",
     "format:check": "prettier --check \"src/**/*.{js,jsx,css}\" \"tests/**/*.{js,jsx}\"",
-    "test": "vitest run --globals"
+    "test": "vitest run"
   },
   "dependencies": {
     "dompurify": "^3.2.3",

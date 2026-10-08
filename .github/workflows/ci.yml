@@ -1,62 +1,32 @@
 name: CI
-
-on:
-  push:
-  pull_request:
-
+on: [push, pull_request]
+permissions:
+  contents: read
 jobs:
   check:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: 20
-
-      - name: Install backend dependencies
-        run: npm install --prefix backend
-
-      - name: Install frontend dependencies
-        run: npm install --prefix frontend
-
-      - name: Lint and format check
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            backend/package-lock.json
+            frontend/package-lock.json
+      - run: npm run install:all
+      - run: npm run ci
+      - name: Build and start three containers
+        run: docker compose up -d --build --wait
+      - name: Check public entry points and session proxy
+        run: npm run smoke
+      - name: Check backend port isolation
         run: |
-          npm run lint
-          npm run format:check
-
-      - name: Tests
-        run: npm test
-
-      - name: Build
-        run: npm run build
-
-      - name: Docker build
-        run: docker build -t xss-csrf-demo .
-
-      - name: Docker Compose smoke test
-        run: |
-          docker compose up -d --build
-
-          for i in {1..30}; do
-            if curl -fsS http://localhost:3000/vulnerable > /dev/null && \
-               curl -fsS http://localhost:3000/protected > /dev/null && \
-               curl -fsS http://localhost:4000/ > /dev/null; then
-              echo "Docker Compose services are working"
-              exit 0
-            fi
-
-            echo "Waiting for containers..."
-            sleep 2
-          done
-
-          docker compose ps
-          docker compose logs
-          exit 1
-
-      - name: Docker Compose cleanup
+          test -z "$(docker compose port backend 8000)"
+          docker compose exec -T attacker node -e "require('dns').lookup('backend',e=>process.exit(e?0:1))"
+      - name: Logs on failure
+        if: failure()
+        run: docker compose logs
+      - name: Cleanup
         if: always()
-        run: docker compose down -v
+        run: docker compose down --volumes

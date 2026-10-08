@@ -8,7 +8,7 @@
     "start": "node src/server.js",
     "lint": "eslint src tests",
     "format:check": "prettier --check \"src/**/*.js\" \"tests/**/*.js\"",
-    "test": "vitest run --globals",
+    "test": "vitest run",
     "build": "node --check src/app.js && node --check src/server.js"
   },
   "dependencies": {

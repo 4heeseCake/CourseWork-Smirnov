@@ -1,142 +1,121 @@
-# XSS & CSRF Demo
+# Учебный стенд XSS и CSRF
 
-Учебное демонстрационное веб-приложение для курсовой работы «Исследование уязвимостей XSS и CSRF: создание демонстрационного веб-приложения с имитацией атак и защитой».
+Три отдельных сервиса: backend, frontend и attacker. Nginx отсутствует.
+Стенд содержит намеренные уязвимости; используйте только локальные тестовые данные.
 
-## Цель
+## Запуск через Docker Desktop
 
-Сравнить поведение одного приложения в двух режимах:
+Откройте PowerShell в распакованной папке `xss-csrf-demo`:
 
-- `vulnerable` — намеренно оставлены XSS- и CSRF-уязвимости;
-- `protected` — включены санитизация, безопасный React-рендеринг, DOMPurify, CSP, CSRF-токены и настройки cookies.
-
-## Архитектура
-
-```text
-xss-csrf-demo/
-├── backend/              Express API, sessions, XSS/CSRF logic and tests
-├── frontend/             React + Vite UI and frontend tests
-├── attacker/             Separate attacker page for attack simulation
-├── .github/workflows/    GitHub Actions pipeline
-├── Dockerfile            Multi-stage React + Node.js build
-├── docker-compose.yml    Application + attacker page
-└── README.md
+```powershell
+docker compose up -d --build --wait
+docker compose ps
 ```
 
-## Реализованные сценарии
+- Защищённая страница: http://localhost:3000/protected
+- Уязвимая страница: http://localhost:3000/vulnerable
+- Страница атакующего: http://localhost:4000
+- Тестовый вход: `student` / `1234`.
 
-### XSS
+Используйте именно `localhost` во всех вкладках: не смешивайте его с `127.0.0.1`.
+Backend слушает `8000` внутри Docker; `localhost:8000` не публикуется.
+Frontend отдаёт собранный React и проксирует `/api/*` на `http://backend:8000`.
+Атакующие формы отправляют запросы браузером на `http://localhost:3000`.
+Контейнер attacker не подключён к сети backend. Его порт 4000 нужен только для
+загрузки страницы внешнего origin, это не второй вход в API.
 
-- Reflected XSS;
-- Stored XSS with in-memory storage;
-- DOM-based XSS;
-- backend sanitization with `sanitize-html`;
-- safe React text rendering;
-- DOMPurify when HTML rendering is required;
-- Content Security Policy in protected mode.
-
-### CSRF
-
-- cookie-based sessions with `express-session`;
-- login using demo account `student / 1234`;
-- email change as a state-changing operation;
-- vulnerable mode without CSRF validation;
-- protected mode with session-bound CSRF token;
-- `HttpOnly` and `SameSite=Lax` for the protected session cookie;
-- separate attacker page.
-
-## Local development
-
-Requirements: Node.js 20+ and npm.
-
-Install dependencies:
-
-```bash
-npm run install:all
-```
-
-Terminal 1:
-
-```bash
-npm run dev:backend
-```
-
-Terminal 2:
-
-```bash
-npm run dev:frontend
-```
-
-Open:
-
-- frontend: `http://localhost:5173/vulnerable`;
-- protected mode: `http://localhost:5173/protected`.
-
-For the attacker page in development, it is easiest to use Docker Compose or any simple static HTTP server.
-
-## Docker launch
-
-On Windows, Docker Desktop can provide the Docker Engine and Compose backend. The GUI does not have to be used during the demonstration.
-
-```bash
-docker compose up --build
-```
-
-Then open:
-
-- `http://localhost:3000/vulnerable`;
-- `http://localhost:3000/protected`;
-- `http://localhost:4000` — attacker page.
-
-Stop:
-
-```bash
+```powershell
+docker compose logs -f
 docker compose down
 ```
 
-## Verification commands
+Комментарии и сессии находятся в памяти: перезапуск backend сбрасывает их.
+Каждый сервис имеет собственный Dockerfile и контекст сборки. Образы запускаются
+от пользователя node, с read-only файловой системой и без Linux capabilities.
+Публикация привязана к loopback. Изоляция контейнеров не устраняет учебные XSS/CSRF.
 
-```bash
-npm run lint
-npm run format:check
-npm test
+## Проверка без Docker
+
+Нужен Node.js 22 и npm. Из корня проекта:
+
+```powershell
+npm run install:all
+npm run ci
 npm run build
 ```
 
-Or run the main local CI sequence:
+В трёх отдельных терминалах из корня:
 
-```bash
-npm run ci
+```powershell
+npm run dev:backend
+npm run start:frontend
+npm run start:attacker
 ```
 
-The GitHub Actions workflow uses the same order: lint/format -> tests -> build -> Docker build.
+Затем `npm run smoke`. Для редактирования интерфейса можно вместо
+`start:frontend` использовать `dev:frontend`; Vite проксирует на localhost:8000.
+Проверяйте CSP на собранном frontend, поскольку Vite dev-сервер не воспроизводит
+его заголовки. При запуске без Docker изоляция сетей Compose отсутствует.
 
-## Demonstration order
+## Сценарии демонстрации
 
-1. Open `/vulnerable`.
-2. Check Reflected, Stored and DOM-based XSS with a local harmless payload such as `<img src=x onerror="alert('XSS')">`.
-3. Open `/protected` and repeat the same payloads.
-4. Log in as `student / 1234` in vulnerable mode.
-5. Open `http://localhost:4000` and submit the vulnerable CSRF form.
-6. Return to the application and press `Refresh profile`: the email becomes `attacker@example.com`.
-7. Repeat in protected mode. The attacker request should be rejected with HTTP 403 because it has no valid CSRF token.
+1. Откройте `/vulnerable`. Через attacker нажмите Reflected XSS Vulnerable:
+   появится учебный alert. Повторите для Protected: alert отсутствует.
+2. В attacker отправьте Stored XSS, затем обновите vulnerable: комментарий
+   создаёт alert. Одинаковый ввод в форме protected очищается.
+3. Нажмите DOM-based XSS для каждого режима: источник данных находится в hash,
+   backend не получает фрагмент URL. В vulnerable сработает alert, в protected нет.
+4. Войдите на vulnerable, отправьте CSRF через attacker. Обновите профиль:
+   адрес изменится на attacker@example.com.
+5. Войдите отдельно на protected и повторите атаку: ответ 403, email не меняется.
+   Легитимная форма получает токен и успешно меняет email.
 
-## Edge cases covered by tests
+Два порта localhost — разные origin, но один site. SameSite=Lax не блокирует
+этот same-site сценарий. Protected использует токен сессии и проверку Origin;
+чужой Origin отклоняется, при отсутствующем Origin токен всё равно обязателен
+для комментариев, профиля и выхода. Login проверяет Origin и регенерирует сессию.
+GET csrf-token доступен и анонимно для формы комментариев; CORS не разрешён.
 
-- mixed-case and nested XSS payloads;
-- Stored and Reflected XSS in both modes;
-- missing CSRF token;
-- forged token;
-- token copied from another session;
-- request without a session cookie;
-- invalid email;
-- CSP, X-Frame-Options and X-Content-Type-Options headers.
+## Структура
 
-## CI/CD
+- `backend/src/app.js`: сборка middleware и роутеров.
+- `backend/src/routes/`: auth, profile, xss.
+- `backend/src/middleware/`: режим, сессии, проверки доступа, Origin и CSRF.
+- `backend/src/repositories/`: ограниченное хранилище комментариев.
+- `frontend/src/pages/`: React-страница.
+- `frontend/src/components/`, `lib/`: вывод и API-клиент.
+- `frontend/server/`: HTTP-сервер статики и фиксированный API proxy.
+- `attacker/pages/`, `public/`: HTML и JavaScript атакующей страницы.
+- `scripts/smoke.cjs`: интеграционная проверка через порт 3000.
 
-`.github/workflows/ci.yml` runs on push and pull request and performs:
+## Границы защиты
 
-```text
-lint + format check -> tests -> build -> Docker build
+Режим задаётся `?mode=protected|vulnerable`, по умолчанию protected. Сессии и
+комментарии режимов разделены. Это сравнение в одном учебном origin, а не
+изоляция доверенных приложений: XSS в vulnerable потенциально может обращаться
+к protected API того же origin. Не используйте такую схему для реальных данных.
+HttpOnly защищает чтение cookie, но не запрещает XSS выполнять запросы.
+Secure=false выбран для локального HTTP; настоящему сервису нужны HTTPS,
+Secure-cookie, постоянное хранилище сессий, полноценная аутентификация и лимиты.
+Секрет генерируется при старте либо задаётся через SESSION_SECRET; в коде его нет.
+
+## Проверки и ограничения
+
+См. `VALIDATION.md` с фактически выполненными проверками. CI выполняет lint,
+format, тесты, сборку React, сборку трёх образов и smoke-test. Конфигурация CI
+сама по себе не подтверждает успешный запуск в GitHub Actions.
+
+## Полная проверка в Chromium
+
+После запуска трёх сервисов выполните:
+
+```powershell
+npm ci --prefix e2e
+npm run browser:install --prefix e2e
+npm test --prefix e2e
 ```
 
-This repository is intended to be public and can be connected to the teacher repository as a Git submodule.
+Сценарий `e2e/browser.cjs` проверяет Reflected, Stored и DOM XSS, отправку
+CSRF-форм, легитимное изменение email и полную навигацию с CSP. Для повторения
+опыта начните с чистого backend. Эта проверка подготовлена, но в среде
+редактирования не выполнена из-за отсутствия доступного Chromium.

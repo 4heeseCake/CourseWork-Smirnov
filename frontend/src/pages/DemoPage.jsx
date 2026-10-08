@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
-import { HtmlOutput } from './components/HtmlOutput';
-import { DomOutput } from './components/DomOutput';
-import { apiRequest } from './lib/api';
+import { useParams } from 'react-router-dom';
+import { HtmlOutput } from '../components/HtmlOutput';
+import { DomOutput } from '../components/DomOutput';
+import { apiRequest } from '../lib/api';
 
 function readHash() {
   try {
@@ -25,7 +25,6 @@ export function DemoPage() {
   const [password, setPassword] = useState('1234');
   const [user, setUser] = useState(null);
   const [email, setEmail] = useState('');
-  const [csrfToken, setCsrfToken] = useState('');
   const [message, setMessage] = useState('');
 
   async function refreshProfile() {
@@ -89,11 +88,6 @@ export function DemoPage() {
       });
       setUser(data.user);
       setMessage('Login successful');
-
-      if (mode === 'protected') {
-        const tokenData = await apiRequest('/api/csrf-token', mode);
-        setCsrfToken(tokenData.csrfToken);
-      }
     } catch (error) {
       setMessage(error.message);
     }
@@ -104,8 +98,6 @@ export function DemoPage() {
     try {
       const data = await apiRequest('/api/profile/email', mode, {
         method: 'POST',
-        headers:
-          mode === 'protected' ? { 'X-CSRF-Token': csrfToken } : undefined,
         body: JSON.stringify({ email }),
       });
       setUser(data.user);
@@ -125,14 +117,18 @@ export function DemoPage() {
           </p>
         </div>
         <nav>
-          <Link to="/vulnerable">Vulnerable</Link>
-          <Link to="/protected">Protected</Link>
+          <a href="/vulnerable">Vulnerable</a>
+          <a href="/protected">Protected</a>
         </nav>
       </header>
 
       <section className="card">
         <h2>Reflected XSS</h2>
-        <form onSubmit={submitSearch}>
+        <form
+          onSubmit={(event) =>
+            submitSearch(event).catch((error) => setMessage(error.message))
+          }
+        >
           <input
             value={search}
             onChange={(event) => setSearch(event.target.value)}
@@ -145,7 +141,11 @@ export function DemoPage() {
 
       <section className="card">
         <h2>Stored XSS</h2>
-        <form onSubmit={submitComment}>
+        <form
+          onSubmit={(event) =>
+            submitComment(event).catch((error) => setMessage(error.message))
+          }
+        >
           <textarea
             value={comment}
             onChange={(event) => setComment(event.target.value)}
